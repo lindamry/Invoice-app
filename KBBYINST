@@ -1,0 +1,65 @@
+KBBYINST ;Third draft of an invoice processing program by Linda Yaw ; 2/27/14 1:02pm
+ ; based on INVSTRT2, trying out various changes
+START ; begin the program
+ N INVENT,MENITEM,WRKNM,WRKDT,WRKCL,FIRSTIME,ENT
+ S INVENT="That is an invalid entry, please try again."
+ W !,"Welcome to Linda's Invoice Program."
+ FOR  D MENU Q:MENITEM=9
+ Q
+ ;
+MENU ;This brings up the start menu
+ W !,"What do you want to do? Type number of menu item."
+ W !,"1",?5,"Enter work performed"
+ W !,"2",?5,"Create invoice"
+ ;W !,"3",?5,"Create bill"
+ ;W !,"4",?5,"Record invoice payment"
+ ;W !,"5",?5,"Record bill payment"
+ ;W !,"6",?5,"Enter misc. charge/credit"
+ ;W !,"7",?5,"View report"
+ ;W !,"8",?5,"Enter new worker or client or change worker rate"
+ W !,"9",?5,"Exit"
+ R !,"Type menu item number: ",MENITEM Q:MENITEM=""
+MENITEC ;Check MENITEM variable for errors
+ I MENITEM>9!(MENITEM<1)!(MENITEM'=(MENITEM\1)) W !,"That is not a menu item."
+ I MENITEM=1 S WRKDT="",WRKNM="",WRKCL="",FIRSTIME=1,ENT="Y" F I=1:1 D ENTWRK Q:ENT="N"!(ENT="n")
+ I MENITEM=2 D ^KBBYICR8 Q
+ I MENITEM>2&(MENITEM<9) W !,"That option is not yet available."
+ I MENITEM=9 Q
+ Q
+ ;
+ENTWRK ;Input time data
+ N TWRKDT,TWRKNM,TWRKCL
+ I 'FIRSTIME DO  Q:ENT="N"!(ENT="n")
+ . R !!,"Do you want to input another entry? Y//",ENT
+ . I ENT="N"!(ENT="n") Q
+ S FIRSTIME=0
+ F  D  Q:WRKDT=TWRKDT
+ . W !!,"Enter work date (YYYYMMDD): ",WRKDT,"//" R TWRKDT
+ . I TWRKDT=""&(WRKDT'="") S TWRKDT=WRKDT ; if user just hits return, use previous entry if there is one
+ . I TWRKDT'?8N W !,INVENT Q ;check to make sure that entry is possibly a date
+ . ;still need to make sure date is within a reasonable range
+ . I TWRKDT'="" S WRKDT=TWRKDT ;if user made a new entry, set work date to that entry
+ . ;E  I WRKDT'="" S TWRKDT=WRKDT
+ . Q
+ F  D  Q:WRKNM=TWRKNM
+ . W !,"Enter worker (L, J): ",WRKNM,"//" R TWRKNM
+ . I TWRKNM=""&(WRKNM'="") S TWRKNM=WRKNM
+ . I TWRKNM'?1A W !,INVENT Q ;Check to make sure entry is a single letter
+ . I TWRKNM?1L S TWRKNM=$TR(TWRKNM,"abcdefghijklmnopqrstuvwxyz","ABCDEFGHIJKLMNOPQRSTUVWXYZ") ;Change lower case letters to upper case.
+ . I TWRKNM'=WRKNM S WRKNM=TWRKNM
+ . Q
+ F  D  Q:WRKCL=TWRKCL
+ . W !,"Enter client (B, R, K, V): ",WRKCL,"//" R TWRKCL
+ . I TWRKCL=""&(WRKCL'="") S TWRKCL=WRKCL
+ . I TWRKCL'?1A W !,INVENT Q ;Check to make sure entry is a single letter
+ . I TWRKCL?1L S TWRKCL=$TR(TWRKCL,"abcdefghijklmnopqrstuvwxyz","ABCDEFGHIJKLMNOPQRSTUVWXYZ") ;Change lower case letters to upper case.
+ . I TWRKCL'=WRKCL S WRKCL=TWRKCL
+ . Q
+ R !,"Enter description: ",^WRKDES(WRKDT,WRKNM,WRKCL) Q:^WRKDES(WRKDT,WRKNM,WRKCL)=""
+ F  D  Q:^WRKTIM(WRKDT,WRKNM,WRKCL)?.N.1".".N
+ . R !,"Enter work time: ",^WRKTIM(WRKDT,WRKNM,WRKCL) Q:^WRKTIM(WRKDT,WRKNM,WRKCL)=""
+ . I ^WRKTIM(WRKDT,WRKNM,WRKCL)'?.N.1".".N!(^WRKTIM(WRKDT,WRKNM,WRKCL)<0) W !,INVENT Q ; check to make sure it's a number and is greater than 0
+ . Q
+ ;W !!,"Description you entered: ",^WRKDES(WRKDT,WRKNM,WRKCL)
+ ;W !,"Time you entered: ",^WRKTIM(WRKDT,WRKNM,WRKCL)
+ Q
