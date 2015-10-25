@@ -1,0 +1,52 @@
+KBBYICR8 ;Sub program of KBBYINST written to create an invoice using data 
+ ;entered using KBBYINST.
+ ;
+ ; TO DO LIST
+ ; Fix infinite loop bug in BODY
+ ; Use FOR loop to run through avail workers
+ ; Set up call to DTDISP to write dates in common format--DONE
+ ; Make formatting a little prettier
+ ; Set up to print to screen or printer
+ ; Set up so rates can vary by customer
+ ; Allow a series of invoices for all customers to be created
+ ; Set so that last entry is default
+ ; Fix it so that long descriptions wrap gracefully
+ ; Allow user to create more than one invoice
+ ; Fix bug-routine doesn't work if there is no entry for first day of period
+ ;
+ N STRDT,ENDDT,ENTCL,INVDT,ENTDT,ENTNM
+ R !,"Enter start date for invoice: ",STRTDT
+ R !,"Enter end date for invoice: ",ENDDT
+ R !,"Enter client (B, K, R, V): ",ENTCL
+ R !,"Enter date of invoice: ",INVDT
+ ;
+ S ENTDT=STRTDT-1 S ENTNM="J" ;set entry date to start date-1 so that $Order will not skip the start date
+ ;set entry name to J
+ N TWRKTIM,TCHRG,FCHRG S TWRKTIM=0,TCHRG=0,FCHRG=0 ;set total work time, total charge, and final charge to 0
+ ;Write out header
+ W !!,"Linda Yaw Personal Assistants"
+ W !,^CLIENT(ENTCL) ;writes out client's name based on client code
+ W !,$$DTDISP(INVDT),! ;writes out invoice date entered by user
+ ;
+ ;
+BODY F  D  Q:ENTNM=""
+ . S ENTNM=$O(^WORKER(ENTNM)) Q:ENTNM=""  ;sets entry name to next worker, quits if there are no more workers
+ . W !,^WORKER(ENTNM) ;writes out the worker's name based on the worker code
+ . F I=1:1 DO OUTPUT Q:(ENTDT>ENDDT!(ENTDT="")) ;do output routine until the entry date is after the entered end date or null
+ . W !!,"Total work time for ",^WORKER(ENTNM)," is: ",TWRKTIM," hours"
+ . S TCHRG=TWRKTIM*^RATE(ENTNM),FCHRG=FCHRG+TCHRG ;set the charge for the current worker and add to the final charge
+ . W !,"Total charge for ",^WORKER(ENTNM)," is: $",$J(TCHRG,7,2)
+ . W !!,"Total due is: $",$J(FCHRG,7,2)
+ . Q
+ ;
+OUTPUT ; Write out the date, description, and time for each entry
+ ; total the times
+ S ENTDT=$O(^WRKDES(ENTDT)) ;set the entry date to the next one that has a description
+ Q:(ENTDT>ENDDT!($O(^WRKDES(ENTDT))="")) ;quit if the entry date is after the end date or null
+ W !,$$DTDISP(ENTDT),?15,^WRKDES(ENTDT,ENTNM,ENTCL),?60,$J(^WRKTIM(ENTDT,ENTNM,ENTCL),4,1) ;Write the date, description, and hours for this entry
+ S TWRKTIM=TWRKTIM+^WRKTIM(ENTDT,ENTNM,ENTCL) ;add the hours to the total work time
+ Q
+ ;
+DTDISP(DT) ;Set the date to display in MM/DD/YYYY format
+ N DTDSP S DTDSP=$E(DT,5,6)_"/"_$E(DT,7,8)_"/"_$E(DT,1,4)
+ Q DTDSP
